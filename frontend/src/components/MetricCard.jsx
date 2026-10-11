@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function MetricCard({ title, value, subtitle, icon: Icon, color = 'indigo' }) {
   const colorMap = {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Activity,
   Users,
@@ -33,8 +33,9 @@ export default function App() {
   const wsRef = useRef(null);
 
   // Fetch initial analytics summary
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
+      setLoading(true);
       const url = new URL(`${API_BASE}/api/stats`);
       url.searchParams.set('time_range', timeRange);
       if (pathFilter) url.searchParams.set('path', pathFilter);
@@ -49,9 +50,14 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange, pathFilter]);
 
-  const fetchRecentEvents = async () => {
+  const fetchStatsRef = useRef(fetchStats);
+  useEffect(() => {
+    fetchStatsRef.current = fetchStats;
+  }, [fetchStats]);
+
+  const fetchRecentEvents = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/events?limit=25`);
       if (res.ok) {
@@ -61,9 +67,9 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch events:', err);
     }
-  };
+  }, []);
 
-  const fetchAnomalies = async () => {
+  const fetchAnomalies = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/anomalies?limit=15`);
       if (res.ok) {
@@ -73,19 +79,18 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch anomalies:', err);
     }
-  };
+  }, []);
 
   // Re-fetch on filter change
   useEffect(() => {
     fetchStats();
-  }, [timeRange, pathFilter]);
+  }, [fetchStats]);
 
   // Initial load
   useEffect(() => {
-    fetchStats();
     fetchRecentEvents();
     fetchAnomalies();
-  }, []);
+  }, [fetchRecentEvents, fetchAnomalies]);
 
   // WebSocket lifecycle management
   useEffect(() => {
@@ -114,7 +119,7 @@ export default function App() {
             } else if (msg.type === 'new_event') {
               setEvents((prev) => [msg.event, ...prev.slice(0, 30)]);
               // Soft refresh stats in background
-              fetchStats();
+              if (fetchStatsRef.current) fetchStatsRef.current();
             } else if (msg.type === 'anomaly_alert') {
               setAnomalies((prev) => [msg.alert, ...prev]);
             }
@@ -132,7 +137,7 @@ export default function App() {
           setWsConnected(false);
           ws.close();
         };
-      } catch (e) {
+      } catch {
         setWsConnected(false);
         reconnectTimer = setTimeout(connectWs, 3000);
       }
@@ -236,7 +241,7 @@ export default function App() {
               }}
               className="flex items-center space-x-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
           </div>

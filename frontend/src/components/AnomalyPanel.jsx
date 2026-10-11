@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, ShieldAlert, TrendingUp, AlertCircle } from 'lucide-react';
 
 export default function AnomalyPanel({ anomalies = [] }) {
