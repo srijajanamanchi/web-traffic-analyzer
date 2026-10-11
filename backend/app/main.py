@@ -196,11 +196,25 @@ app = FastAPI(
 
 
 # CORS configuration
+allowed_origins_list = list(
+    set(
+        [
+            "https://web-traffic-analyzer.onrender.com",
+            "http://localhost:3000",
+            "http://localhost:8080",
+            "http://localhost:8085",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8080",
+            "http://127.0.0.1:8085",
+            *settings.ALLOWED_ORIGINS,
+        ]
+    )
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://web-traffic-analyzer.onrender.com",
-    ],
+    allow_origins=allowed_origins_list,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

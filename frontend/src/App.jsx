@@ -186,7 +186,7 @@ export default function App() {
 
             {/* Link to Demo Site */}
             <a
-              href="http://localhost:8080"
+              href={import.meta.env.VITE_DEMO_URL || 'http://localhost:8080'}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:flex items-center space-x-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium px-3 py-1.5 rounded-lg border border-indigo-500/30 hover:bg-indigo-500/10 transition"

@@ -1,6 +1,6 @@
 /**
  * Lightweight Real-Time Web Traffic Analytics Tracker Snippet
- * Embedded via: <script src="/tracker.js" data-site-id="demo-site" defer></script>
+ * Embedded via: <script src="/tracker.js" data-site-id="demo-site" data-api-url="https://traffic-analyzer-api.onrender.com/api/collect" defer></script>
  * Resilient: Never blocks rendering, fails gracefully if collector is offline.
  */
 (function () {
