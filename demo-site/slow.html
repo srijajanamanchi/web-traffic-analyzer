@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slow Endpoint Simulation - CloudScale</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script>
+    // Artificial blocking delay to simulate high-latency backend response
+    const delayStart = performance.now();
+    while (performance.now() - delayStart < 850) {
+      // Burn CPU cycles for 850ms to simulate slow resource rendering
+    }
+  </script>
+  <script src="/tracker.js" data-site-id="demo-site" defer></script>
+</head>
+<body data-status-code="200">
+  <header>
+    <div class="nav-container">
+      <a href="/index.html" class="logo">
+        ⚡ Cloud<span>Scale</span> <span class="badge">Demo Site</span>
+      </a>
+      <nav>
+        <ul>
+          <li><a href="/index.html">Home</a></li>
+          <li><a href="/products.html">Products</a></li>
+          <li><a href="/contact.html">Contact</a></li>
+          <li><a href="/slow.html" class="active">Slow Page</a></li>
+          <li><a href="/old-page" class="broken-link">Broken Link (404)</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main style="text-align: center; padding: 3rem 1rem;">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem;">⏳</div>
+    <h1 style="font-size: 2.25rem; margin-bottom: 1rem;">High Latency Simulation (/slow.html)</h1>
+    <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto 2rem;">
+      This page deliberately executes artificial rendering delays to inflate load times 
+      and demonstrate p95/p99 latency percentile spikes in real-time on the telemetry dashboard.
+    </p>
+    <div class="card" style="max-width: 450px; margin: 0 auto; text-align: left;">
+      <h3 style="color: #facc15;">Latency Diagnostic</h3>
+      <p>Simulated backend query & asset latency: <strong>850ms - 1200ms</strong>.</p>
+      <p style="margin-bottom: 0;">Watch the <strong>P95 / P99 Latency</strong> metric spike on the traffic dashboard!</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CloudScale Services. Real-Time DevOps Traffic Generation Portal.</p>
+  </footer>
+</body>
+</html>

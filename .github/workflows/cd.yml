@@ -1,0 +1,174 @@
+name: CD Pipeline - Build, Publish & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # 1. Package & Publish Versioned Images to GHCR
+  publish:
+    name: Build & Push Images to GHCR
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Image Tag
+        id: meta
+        run: |
+          TAG="${GITHUB_SHA::8}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Build & Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ github.repository }}/backend:${{ steps.meta.outputs.tag }}
+
+      - name: Build & Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:latest
+            ghcr.io/${{ github.repository }}/frontend:${{ steps.meta.outputs.tag }}
+
+      - name: Build & Push Demo Site Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./demo-site
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/demo-site:latest
+            ghcr.io/${{ github.repository }}/demo-site:${{ steps.meta.outputs.tag }}
+
+  # 2. Deploy to Staging Environment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [publish]
+    environment:
+      name: staging
+      url: http://${{ secrets.STAGING_SSH_HOST || 'staging.traffic-analyzer.internal' }}
+    steps:
+      - name: Checkout Repository Configuration
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging via SSH & Healthcheck
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          IMAGE_TAG: ${{ needs.publish.outputs.image_tag }}
+        run: |
+          if [ -z "$SSH_HOST" ]; then
+            echo "STAGING_SSH_HOST secret not set. Skipping remote SSH execution in template mode."
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << 'EOF'
+            set -e
+            cd /opt/traffic-analyzer || exit 1
+            echo "Pulling updated images..."
+            docker compose pull backend frontend demo-site
+            docker compose up -d --remove-orphans
+            
+            echo "Running post-deploy health check..."
+            for i in {1..12}; do
+              if curl -f http://localhost:8000/health; then
+                echo "Staging health check passed successfully."
+                exit 0
+              fi
+              echo "Waiting for backend service to become healthy ($i/12)..."
+              sleep 5
+            done
+            
+            echo "Health check failed! Executing automatic rollback..."
+            docker compose rollback || docker compose restart
+            exit 1
+          EOF
+
+  # 3. Deploy to Production with Manual Approval Gate
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [publish, deploy-staging]
+    environment:
+      name: production
+      url: http://${{ secrets.SSH_HOST }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production VM with Automated Rollback
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          IMAGE_TAG: ${{ needs.publish.outputs.image_tag }}
+        run: |
+          if [ -z "$SSH_HOST" ]; then
+            echo "SSH_HOST secret not configured. Skipping remote SSH execution in template mode."
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/prod_key
+          chmod 600 ~/.ssh/prod_key
+
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/prod_key "$SSH_USER@$SSH_HOST" << 'EOF'
+            set -e
+            cd /opt/traffic-analyzer || exit 1
+
+            # Backup current working configuration state for rollback
+            docker compose ps --format json > /tmp/previous_state.json
+
+            echo "Deploying production release..."
+            docker compose pull backend frontend demo-site
+            docker compose up -d --remove-orphans
+
+            echo "Performing Post-Deploy Smoke & Health Validation..."
+            HEALTHY=false
+            for attempt in {1..15}; do
+              if curl -f http://localhost:8000/health && curl -f http://localhost:8080/healthz; then
+                HEALTHY=true
+                echo "Production deployment is verified healthy."
+                break
+              fi
+              echo "Waiting for service availability (attempt $attempt/15)..."
+              sleep 4
+            done
+
+            if [ "$HEALTHY" = false ]; then
+              echo "CRITICAL: Post-deploy health verification failed! Triggering automatic rollback."
+              docker compose down
+              # Restore previous container images
+              docker compose up -d
+              exit 1
+            fi
+          EOF

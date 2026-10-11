@@ -1,0 +1,178 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Telemetry Store
+  db:
+    image: postgres:16-alpine
+    container_name: traffic-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-traffic_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-traffic_password}
+      POSTGRES_DB: ${POSTGRES_DB:-traffic_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traffic_user -d traffic_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - traffic-net
+
+  # 2. Redis Live Cache & Aggregator
+  redis:
+    image: redis:7-alpine
+    container_name: traffic-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - traffic-net
+
+  # 3. Telemetry Collector, Anomaly Engine & API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: traffic-backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-traffic_user}:${POSTGRES_PASSWORD:-traffic_password}@db:5432/${POSTGRES_DB:-traffic_db}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_ENABLED: "true"
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080"
+      NGINX_LOG_PATH: /var/log/nginx/access.log
+      TAIL_NGINX_LOGS: "true"
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - demo-logs:/var/log/nginx:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - traffic-net
+
+  # 4. Real-Time Telemetry React Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: traffic-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - traffic-net
+
+  # 5. Demo Website (Real Traffic Source)
+  demo-site:
+    build:
+      context: ./demo-site
+      dockerfile: Dockerfile
+    container_name: traffic-demo-site
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - demo-logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - traffic-net
+
+  # 6. Automated Traffic Simulator
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: traffic-simulator
+    restart: unless-stopped
+    command: [
+      "--demo-url", "http://demo-site:80",
+      "--collector-url", "http://backend:8000/api/collect",
+      "--mode", "continuous",
+      "--rate", "2.0",
+      "--duration", "0"
+    ]
+    depends_on:
+      backend:
+        condition: service_healthy
+      demo-site:
+        condition: service_healthy
+    networks:
+      - traffic-net
+
+  # 7. Prometheus Metrics Scraper & Alerting
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: traffic-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - traffic-net
+
+  # 8. Grafana Dashboard
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: traffic-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - traffic-net
+
+volumes:
+  postgres-data:
+  demo-logs:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  traffic-net:
+    driver: bridge

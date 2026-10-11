@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 Page Not Found - CloudScale</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/tracker.js" data-site-id="demo-site" defer></script>
+</head>
+<body data-status-code="404">
+  <header>
+    <div class="nav-container">
+      <a href="/index.html" class="logo">
+        ⚡ Cloud<span>Scale</span> <span class="badge">Demo Site</span>
+      </a>
+      <nav>
+        <ul>
+          <li><a href="/index.html">Home</a></li>
+          <li><a href="/products.html">Products</a></li>
+          <li><a href="/contact.html">Contact</a></li>
+          <li><a href="/slow.html">Slow Page</a></li>
+          <li><a href="/old-page" class="broken-link active">Broken Link (404)</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main style="text-align: center; padding: 4rem 1rem;">
+    <h1 style="font-size: 5rem; color: #ef4444; font-weight: 900; margin-bottom: 0.5rem;">404</h1>
+    <h2 style="font-size: 1.75rem; margin-bottom: 1rem;">Resource Not Found (/old-page)</h2>
+    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 2rem;">
+      This endpoint was deliberately migrated or removed to generate authentic HTTP 404 error events 
+      for anomaly detection verification on the dashboard.
+    </p>
+    <div class="btn-group">
+      <a href="/index.html" class="btn btn-primary">Return to Safety (Home)</a>
+      <a href="/products.html" class="btn btn-secondary">Browse Products</a>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CloudScale Services. Real-Time DevOps Traffic Generation Portal.</p>
+  </footer>
+</body>
+</html>

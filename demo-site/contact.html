@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Solutions - CloudScale</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/tracker.js" data-site-id="demo-site" defer></script>
+</head>
+<body data-status-code="200">
+  <header>
+    <div class="nav-container">
+      <a href="/index.html" class="logo">
+        ⚡ Cloud<span>Scale</span> <span class="badge">Demo Site</span>
+      </a>
+      <nav>
+        <ul>
+          <li><a href="/index.html">Home</a></li>
+          <li><a href="/products.html">Products</a></li>
+          <li><a href="/contact.html" class="active">Contact</a></li>
+          <li><a href="/slow.html">Slow Page</a></li>
+          <li><a href="/old-page" class="broken-link">Broken Link (404)</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section style="text-align: center; margin-bottom: 2rem;">
+      <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Contact Technical Team</h1>
+      <p style="color: var(--text-muted);">Reach out for architect consultations or enterprise pricing inquiries.</p>
+    </section>
+
+    <form id="contactForm" action="/contact.html" onsubmit="event.preventDefault(); document.getElementById('successMsg').style.display='block';">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="Alex Dev" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Work Email</label>
+        <input type="email" id="email" name="email" placeholder="alex@company.com" required>
+      </div>
+      <div class="form-group">
+        <label for="message">Project Requirements</label>
+        <textarea id="message" name="message" rows="4" placeholder="Tell us about your infrastructure goals..." required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Inquiry</button>
+      <div id="successMsg" style="display:none; margin-top: 1rem; color: #10b981; text-align: center; font-weight: 500;">
+        ✓ Form submitted! Event tracked by the analytics engine.
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CloudScale Services. Real-Time DevOps Traffic Generation Portal.</p>
+  </footer>
+</body>
+</html>
