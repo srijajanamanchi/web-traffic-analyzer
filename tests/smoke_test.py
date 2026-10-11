@@ -4,7 +4,7 @@ Post-Deploy Smoke Test
 Tests the complete pipeline end-to-end:
 1. Load demo site home page
 2. Verify tracking event appears in the analyzer API
-3. Confirm /health returns healthy
+3. Confirm /health returns healthy!
 """
 
 import contextlib
