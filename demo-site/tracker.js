@@ -18,7 +18,7 @@
     const collectorUrl =
       (currentScript && currentScript.getAttribute("data-api-url")) ||
       window.__COLLECTOR_URL__ ||
-      "http://localhost:8000/api/collect";
+      "https://traffic-analyzer-api.onrender.com/api/collect";
 
     // 1. Session Management in sessionStorage
     const SESSION_KEY = "_ta_session_id";
