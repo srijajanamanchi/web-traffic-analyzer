@@ -4,6 +4,7 @@ import os
 import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import (
     Depends,
@@ -192,10 +193,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS or ["*"],
+    allow_origins=[
+        "https://web-traffic-analyzer.onrender.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
