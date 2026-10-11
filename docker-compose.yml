@@ -96,7 +96,7 @@ services:
     container_name: traffic-demo-site
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${DEMO_SITE_PORT:-8080}:80"
     volumes:
       - demo-logs:/var/log/nginx
     healthcheck:
