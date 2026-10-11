@@ -4,9 +4,10 @@ Usage:
   locust -f tests/load_test.py --host=http://localhost:8000 --users 50 --spawn-rate 5 --run-time 60s --headless
 """
 
-import uuid
 import random
-from locust import HttpUser, task, between
+import uuid
+
+from locust import HttpUser, between, task
 
 
 class TrackerUser(HttpUser):

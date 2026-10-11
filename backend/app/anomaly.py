@@ -1,11 +1,13 @@
 import math
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 import httpx
+
 from backend.app.config import settings
 from backend.app.logger import logger
 
 
-def calculate_z_score(value: float, history: List[float]) -> Dict[str, float]:
+def calculate_z_score(value: float, history: list[float]) -> dict[str, float]:
     """
     Calculate mean, standard deviation, and z-score for a given value relative to historical series.
     Formula: z = (value - mean) / std_dev
@@ -19,10 +21,7 @@ def calculate_z_score(value: float, history: List[float]) -> Dict[str, float]:
     variance = sum((x - mean) ** 2 for x in history) / n
     std_dev = math.sqrt(variance)
 
-    if std_dev == 0.0:
-        z_score = 0.0
-    else:
-        z_score = (value - mean) / std_dev
+    z_score = 0.0 if std_dev == 0.0 else (value - mean) / std_dev
 
     return {
         "z_score": round(z_score, 2),
@@ -33,10 +32,10 @@ def calculate_z_score(value: float, history: List[float]) -> Dict[str, float]:
 
 def detect_traffic_spike(
     current_count: int,
-    history_counts: List[int],
+    history_counts: list[int],
     threshold: float = 2.5,
     min_volume: int = 10,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Detect sudden spikes in requests per minute using rolling z-score.
     """
@@ -64,10 +63,10 @@ def detect_traffic_spike(
 
 
 def detect_error_surge(
-    status_codes: List[int],
+    status_codes: list[int],
     error_rate_threshold: float = 0.15,
     min_requests: int = 5,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Detect surge in 4xx/5xx error responses.
     """
@@ -96,14 +95,14 @@ def detect_error_surge(
 
 
 def detect_suspicious_ips(
-    events: List[Dict[str, Any]],
+    events: list[dict[str, Any]],
     error_threshold: int = 5,
     rate_threshold: int = 40,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Detect suspicious IPs exhibiting scanning behavior (repeated 404/401s) or rate abuse.
     """
-    ip_stats: Dict[str, Dict[str, int]] = {}
+    ip_stats: dict[str, dict[str, int]] = {}
 
     for ev in events:
         ip = ev.get("ip") or "unknown"
@@ -149,7 +148,7 @@ def detect_suspicious_ips(
     return alerts
 
 
-async def dispatch_alert_webhook(alert_data: Dict[str, Any]) -> None:
+async def dispatch_alert_webhook(alert_data: dict[str, Any]) -> None:
     """
     Send alert notification to Slack/Discord webhook if configured.
     """

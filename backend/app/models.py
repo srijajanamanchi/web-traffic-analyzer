@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from datetime import UTC, datetime
+
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+
 from backend.app.database import Base
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class TrafficEvent(Base):

@@ -3,35 +3,42 @@ import json
 import os
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict, Any
+from datetime import UTC, datetime, timedelta
 
-from fastapi import FastAPI, Depends, Request, Response, WebSocket, WebSocketDisconnect, Query, status
+from fastapi import (
+    Depends,
+    FastAPI,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from backend.app.config import settings
-from backend.app.logger import logger
-from backend.app.database import get_db, init_db, SessionLocal
-from backend.app.models import TrafficEvent, AnomalyAlert
-from backend.app.parser import parse_nginx_log_line, parse_user_agent
 from backend.app.analytics import get_traffic_analytics
 from backend.app.anomaly import (
-    detect_traffic_spike,
     detect_error_surge,
     detect_suspicious_ips,
     dispatch_alert_webhook,
 )
+from backend.app.config import settings
+from backend.app.database import SessionLocal, get_db, init_db
+from backend.app.logger import logger
 from backend.app.metrics import (
-    HTTP_REQUESTS_TOTAL,
-    HTTP_REQUEST_DURATION_SECONDS,
-    COLLECTED_EVENTS_TOTAL,
     ACTIVE_USERS_GAUGE,
     ANOMALIES_DETECTED_TOTAL,
+    COLLECTED_EVENTS_TOTAL,
+    HTTP_REQUEST_DURATION_SECONDS,
+    HTTP_REQUESTS_TOTAL,
     get_metrics_response,
 )
+from backend.app.models import AnomalyAlert, TrafficEvent
+from backend.app.parser import parse_nginx_log_line, parse_user_agent
 from backend.app.websocket_manager import ws_manager
 
 
@@ -41,16 +48,16 @@ class CollectPayload(BaseModel):
     session_id: str = Field(...)
     event_type: str = Field(default="pageview")  # pageview, click, form_submit, unload
     path: str = Field(default="/")
-    referrer: Optional[str] = Field(default="")
-    user_agent: Optional[str] = Field(default="")
-    screen_resolution: Optional[str] = Field(default="")
-    load_time_ms: Optional[float] = Field(default=0.0)
-    duration_ms: Optional[float] = Field(default=0.0)
-    status_code: Optional[int] = Field(default=200)
+    referrer: str | None = Field(default="")
+    user_agent: str | None = Field(default="")
+    screen_resolution: str | None = Field(default="")
+    load_time_ms: float | None = Field(default=0.0)
+    duration_ms: float | None = Field(default=0.0)
+    status_code: int | None = Field(default=200)
 
 
 class LogIngestPayload(BaseModel):
-    lines: List[str]
+    lines: list[str]
 
 
 # --- Background Tasks ---
@@ -72,7 +79,7 @@ async def tail_nginx_log_task():
 
     logger.info(f"Starting active Nginx log tailer on {log_path}")
     try:
-        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+        with open(log_path, encoding="utf-8", errors="ignore") as f:
             # Go to end of file
             f.seek(0, os.SEEK_END)
             while True:
@@ -130,7 +137,7 @@ async def periodic_stats_broadcast_task():
 
             db = SessionLocal()
             try:
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 stats = get_traffic_analytics(db, start_time=now - timedelta(minutes=5), end_time=now)
                 active_users = stats["active_users_now"]
                 ACTIVE_USERS_GAUGE.set(active_users)
@@ -204,10 +211,7 @@ async def prometheus_metrics_middleware(request: Request, call_next):
 
     endpoint = request.url.path
     # Group static or dynamic endpoints to prevent high cardinality
-    if endpoint.startswith("/api/"):
-        endpoint_clean = endpoint.split("?")[0]
-    else:
-        endpoint_clean = endpoint
+    endpoint_clean = endpoint.split("?")[0] if endpoint.startswith("/api/") else endpoint
 
     HTTP_REQUESTS_TOTAL.labels(
         method=request.method,
@@ -240,7 +244,7 @@ async def inspect_anomalies(db: Session, event: TrafficEvent):
     """
     Check if incoming event triggers anomaly thresholds (spike, error surge, suspicious IP).
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     five_min_ago = now - timedelta(minutes=5)
 
     recent_events = (
@@ -335,7 +339,7 @@ async def collect_telemetry(request: Request, db: Session = Depends(get_db)):
         os=ua_info["os"],
         device=ua_info["device"],
         screen_resolution=payload.screen_resolution or "",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     db.add(event)
@@ -391,13 +395,13 @@ async def ingest_logs(payload: LogIngestPayload, db: Session = Depends(get_db)):
 @app.get("/api/stats")
 def get_stats(
     time_range: str = Query("1h", pattern="^(5m|15m|1h|24h|all)$"),
-    path: Optional[str] = None,
+    path: str | None = None,
     db: Session = Depends(get_db),
 ):
     """
     Query calculated traffic metrics and time-series for the specified duration.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     delta_map = {
         "5m": timedelta(minutes=5),
         "15m": timedelta(minutes=15),
@@ -448,7 +452,7 @@ def health_check(db: Session = Depends(get_db)):
             "status": "healthy",
             "database": "connected",
             "environment": settings.ENVIRONMENT,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as exc:
         logger.error(f"Healthcheck failed: {exc}")
@@ -480,7 +484,7 @@ async def websocket_traffic_endpoint(websocket: WebSocket):
             json.dumps({
                 "type": "connected",
                 "message": "Connected to real-time traffic telemetry stream",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             })
         )
         while True:

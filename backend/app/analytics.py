@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+
 from backend.app.models import TrafficEvent
 
 
-def calculate_percentiles(values: List[float]) -> Dict[str, float]:
+def calculate_percentiles(values: list[float]) -> dict[str, float]:
     """
     Calculate average, p50 (median), p95, and p99 percentiles from a list of numeric latencies.
     """
@@ -36,14 +37,14 @@ def calculate_percentiles(values: List[float]) -> Dict[str, float]:
 
 def get_traffic_analytics(
     db: Session,
-    start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None,
-    path_filter: Optional[str] = None,
-) -> Dict[str, Any]:
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+    path_filter: str | None = None,
+) -> dict[str, Any]:
     """
     Comprehensive traffic analytics computation over a time range.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if not end_time:
         end_time = now
     if not start_time:
@@ -56,7 +57,7 @@ def get_traffic_analytics(
     if path_filter:
         query = query.filter(TrafficEvent.path == path_filter)
 
-    events: List[TrafficEvent] = query.order_by(TrafficEvent.created_at.asc()).all()
+    events: list[TrafficEvent] = query.order_by(TrafficEvent.created_at.asc()).all()
 
     total_requests = len(events)
     if total_requests == 0:
@@ -82,22 +83,22 @@ def get_traffic_analytics(
     status_3xx = 0
     status_4xx = 0
     status_5xx = 0
-    status_breakdown: Dict[int, int] = {}
+    status_breakdown: dict[int, int] = {}
 
-    latencies: List[float] = []
-    page_hits: Dict[str, Dict[str, Any]] = {}
-    referrer_hits: Dict[str, int] = {}
-    device_counts: Dict[str, int] = {}
-    browser_counts: Dict[str, int] = {}
-    os_counts: Dict[str, int] = {}
+    latencies: list[float] = []
+    page_hits: dict[str, dict[str, Any]] = {}
+    referrer_hits: dict[str, int] = {}
+    device_counts: dict[str, int] = {}
+    browser_counts: dict[str, int] = {}
+    os_counts: dict[str, int] = {}
 
     # Time series buckets by minute (YYYY-MM-DD HH:MM)
-    time_series_map: Dict[str, Dict[str, Any]] = {}
+    time_series_map: dict[str, dict[str, Any]] = {}
 
     for ev in events:
         ev_dt = ev.created_at
         if ev_dt is not None and ev_dt.tzinfo is None:
-            ev_dt = ev_dt.replace(tzinfo=timezone.utc)
+            ev_dt = ev_dt.replace(tzinfo=UTC)
 
         unique_sessions.add(ev.session_id)
         if ev_dt and ev_dt >= cutoff_active:
@@ -142,7 +143,7 @@ def get_traffic_analytics(
         os_counts[os_name] = os_counts.get(os_name, 0) + 1
 
         # Time-series bucket
-        bucket_key = (ev_dt or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M")
+        bucket_key = (ev_dt or datetime.now(UTC)).strftime("%Y-%m-%d %H:%M")
         if bucket_key not in time_series_map:
             time_series_map[bucket_key] = {
                 "timestamp": bucket_key,

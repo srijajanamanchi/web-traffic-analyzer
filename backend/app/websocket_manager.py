@@ -1,7 +1,9 @@
 import asyncio
 import json
-from typing import Set, Dict, Any
+from typing import Any
+
 from fastapi import WebSocket
+
 from backend.app.logger import logger
 
 
@@ -11,7 +13,7 @@ class WebSocketManager:
     """
 
     def __init__(self) -> None:
-        self.active_connections: Set[WebSocket] = set()
+        self.active_connections: set[WebSocket] = set()
         self._lock = asyncio.Lock()
 
     async def connect(self, websocket: WebSocket) -> None:
@@ -25,7 +27,7 @@ class WebSocketManager:
             self.active_connections.discard(websocket)
         logger.info(f"WebSocket client disconnected. Total clients: {len(self.active_connections)}")
 
-    async def broadcast(self, message: Dict[str, Any]) -> None:
+    async def broadcast(self, message: dict[str, Any]) -> None:
         if not self.active_connections:
             return
 

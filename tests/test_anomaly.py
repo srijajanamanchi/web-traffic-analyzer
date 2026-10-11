@@ -1,8 +1,8 @@
 from backend.app.anomaly import (
     calculate_z_score,
-    detect_traffic_spike,
     detect_error_surge,
     detect_suspicious_ips,
+    detect_traffic_spike,
 )
 
 

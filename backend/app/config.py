@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 
 class Settings:
@@ -11,7 +10,7 @@ class Settings:
     # SQLite fallback for local dev / testing, PostgreSQL in production
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./traffic.db")
 
-    ALLOWED_ORIGINS: List[str] = [
+    ALLOWED_ORIGINS: list[str] = [
         origin.strip()
         for origin in os.getenv(
             "ALLOWED_ORIGINS",

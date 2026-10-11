@@ -10,7 +10,7 @@ import argparse
 import random
 import time
 import uuid
-import sys
+
 import requests
 
 USER_AGENTS = [
@@ -194,7 +194,7 @@ def main():
     args = parser.parse_args()
 
     print("==================================================")
-    print(f" Web Traffic Simulator Initiated")
+    print(" Web Traffic Simulator Initiated")
     print(f" Target Site:      {args.demo_url}")
     print(f" Collector API:    {args.collector_url}")
     print(f" Mode:             {args.mode.upper()}")

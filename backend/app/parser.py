@@ -1,6 +1,6 @@
 import re
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from datetime import UTC, datetime
+from typing import Any
 
 # Combined Log Format:
 # $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
@@ -17,7 +17,7 @@ NGINX_COMBINED_LOG_REGEX = re.compile(
 )
 
 
-def parse_nginx_log_line(line: str) -> Optional[Dict[str, Any]]:
+def parse_nginx_log_line(line: str) -> dict[str, Any] | None:
     """
     Parse a single line from an Nginx access log in combined format.
     Returns a dictionary of parsed fields or None if parsing fails.
@@ -39,7 +39,7 @@ def parse_nginx_log_line(line: str) -> Optional[Dict[str, Any]]:
         status_code = 200
 
     # Parse timestamp
-    timestamp = datetime.now(timezone.utc)
+    timestamp = datetime.now(UTC)
     raw_time = data.get("time_local", "")
     if raw_time:
         try:
@@ -47,7 +47,7 @@ def parse_nginx_log_line(line: str) -> Optional[Dict[str, Any]]:
             # Remove colon between day/month/year and hours for strptime if needed, or parse directly:
             # '%d/%b/%Y:%H:%M:%S %z'
             parsed_dt = datetime.strptime(raw_time, "%d/%b/%Y:%H:%M:%S %z")
-            timestamp = parsed_dt.astimezone(timezone.utc)
+            timestamp = parsed_dt.astimezone(UTC)
         except Exception:
             pass
 
@@ -82,7 +82,7 @@ def parse_nginx_log_line(line: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def parse_user_agent(user_agent: str) -> Dict[str, str]:
+def parse_user_agent(user_agent: str) -> dict[str, str]:
     """
     Rule-based user-agent parser to extract browser, operating system, and device type.
     """
