@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 
 
 # --- Final Runtime Stage ---
-FROM python:3.13-slim AS runner
+FROM python:3.12-slim
 
 WORKDIR /app
 
