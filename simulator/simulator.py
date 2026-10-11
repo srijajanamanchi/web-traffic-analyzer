@@ -7,11 +7,17 @@ and intentional anomalies for telemetry dashboard demonstrations.
 """
 
 import argparse
+import contextlib
 import random
+import sys
 import time
 import uuid
 
 import requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    with contextlib.suppress(Exception):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 USER_AGENTS = [
     # Chrome Windows
@@ -151,26 +157,26 @@ def simulate_visitor_journey(
 
 def run_traffic_spike(demo_url: str, collector_url: str, count: int = 50):
     """Generates rapid burst of traffic to trigger z-score traffic spike anomaly."""
-    print(f"\n⚡ [TRAFFIC SPIKE] Triggering rapid burst of {count} requests...")
+    print(f"\n[TRAFFIC SPIKE] Triggering rapid burst of {count} requests...")
     for _ in range(count):
         simulate_visitor_journey(demo_url, collector_url, burst=True)
-    print("✓ Traffic spike generated.\n")
+    print("[OK] Traffic spike generated.\n")
 
 
 def run_error_surge(demo_url: str, collector_url: str, count: int = 25):
     """Generates consecutive 404 errors to trigger error surge anomaly."""
-    print(f"\n🚨 [ERROR SURGE] Inundating site with {count} 404 broken-link requests...")
+    print(f"\n[ERROR SURGE] Inundating site with {count} 404 broken-link requests...")
     for _ in range(count):
         simulate_visitor_journey(demo_url, collector_url, force_path="/old-page", burst=True)
         time.sleep(0.05)
-    print("✓ Error surge triggered.\n")
+    print("[OK] Error surge triggered.\n")
 
 
 def run_suspicious_ip(demo_url: str, collector_url: str, count: int = 15):
     """Simulates malicious automated vulnerability scanner from single IP."""
     attacker_ip = "198.51.100.88"
     attacker_ua = "sqlmap/1.6#stable (https://sqlmap.org)"
-    print(f"\n🛡️ [SECURITY ANOMALY] Simulating suspicious vulnerability scanning from {attacker_ip}...")
+    print(f"\n[SECURITY ANOMALY] Simulating suspicious vulnerability scanning from {attacker_ip}...")
     for _ in range(count):
         simulate_visitor_journey(
             demo_url,
@@ -181,7 +187,7 @@ def run_suspicious_ip(demo_url: str, collector_url: str, count: int = 15):
             burst=True,
         )
         time.sleep(0.08)
-    print(f"✓ Suspicious IP anomaly created for {attacker_ip}.\n")
+    print(f"[OK] Suspicious IP anomaly created for {attacker_ip}.\n")
 
 
 def main():
@@ -211,7 +217,7 @@ def main():
         return
     elif args.mode == "demo":
         # Interactive demo script: normal traffic -> spike -> error surge -> suspicious IP
-        print("\n🎬 Running end-to-end Demonstration Traffic Sequence...")
+        print("\n[DEMO] Running end-to-end Demonstration Traffic Sequence...")
         print("Stage 1/4: Generating steady baseline traffic (15 visitors)...")
         for _ in range(15):
             simulate_visitor_journey(args.demo_url, args.collector_url)
@@ -231,7 +237,7 @@ def main():
             simulate_visitor_journey(args.demo_url, args.collector_url)
             time.sleep(0.3)
 
-        print("\n✨ Demonstration traffic sequence completed successfully!")
+        print("\n[OK] Demonstration traffic sequence completed successfully!")
         return
 
     # Continuous mode

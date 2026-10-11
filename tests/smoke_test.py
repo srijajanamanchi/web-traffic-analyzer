@@ -7,11 +7,16 @@ Tests the complete pipeline end-to-end:
 3. Confirm /health returns healthy
 """
 
+import contextlib
 import sys
 import time
 import uuid
 
 import requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    with contextlib.suppress(Exception):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def run_smoke_test(
@@ -32,9 +37,9 @@ def run_smoke_test(
         health = resp.json()
         assert health["status"] == "healthy", f"Unhealthy status: {health}"
         assert health["database"] == "connected", "Database not connected"
-        print(f"      ✓ /health OK: {health['status']} (env: {health.get('environment', 'unknown')})")
+        print(f"      [OK] /health OK: {health['status']} (env: {health.get('environment', 'unknown')})")
     except Exception as e:
-        print(f"      ✗ FAIL: {e}")
+        print(f"      [FAIL]: {e}")
         return False
 
     # 2. Demo site home page
@@ -43,9 +48,9 @@ def run_smoke_test(
         resp = requests.get(f"{demo_url}/index.html", timeout=10)
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         assert "CloudScale" in resp.text or "tracker.js" in resp.text, "Missing expected content"
-        print(f"      ✓ Demo site home page loaded OK (status {resp.status_code})")
+        print(f"      [OK] Demo site home page loaded OK (status {resp.status_code})")
     except Exception as e:
-        print(f"      ✗ FAIL: {e}")
+        print(f"      [FAIL]: {e}")
         return False
 
     # 3. Send a pageview tracking event
@@ -73,9 +78,9 @@ def run_smoke_test(
         assert resp.status_code == 201, f"Expected 201, got {resp.status_code}"
         data = resp.json()
         assert data.get("status") == "ok", f"Unexpected response: {data}"
-        print(f"      ✓ Event collected successfully (event_id: {data.get('event_id')})")
+        print(f"      [OK] Event collected successfully (event_id: {data.get('event_id')})")
     except Exception as e:
-        print(f"      ✗ FAIL: {e}")
+        print(f"      [FAIL]: {e}")
         return False
 
     # 4. Verify event appears in the API
@@ -90,13 +95,13 @@ def run_smoke_test(
             f"No event found for session {session_id} in recent events (got {len(events)} total)"
         )
         found = matching[0]
-        print(f"      ✓ Event verified in API: path={found['path']} device={found['device']}")
+        print(f"      [OK] Event verified in API: path={found['path']} device={found['device']}")
     except Exception as e:
-        print(f"      ✗ FAIL: {e}")
+        print(f"      [FAIL]: {e}")
         return False
 
     print("\n" + "=" * 60)
-    print("  ✨ All smoke tests passed! Pipeline is healthy.")
+    print("  All smoke tests passed! Pipeline is healthy.")
     print("=" * 60 + "\n")
     return True
 
