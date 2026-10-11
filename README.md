@@ -4,6 +4,34 @@
 
 ---
 
+## 🌐 Live Cloud Deployment (Render)
+
+The application stack is fully deployed and operational in production on [Render](https://render.com):
+
+| Component | URL | Description |
+|---|---|---|
+| **📊 Real-Time Dashboard** | [web-traffic-analyzer.onrender.com](https://web-traffic-analyzer.onrender.com) | Live React telemetry dashboard with WebSocket streaming |
+| **⚡ CloudScale Demo Site** | [demo-site-6524.onrender.com](https://demo-site-6524.onrender.com) | Live traffic source instrumented with `tracker.js` |
+| **🚀 Collector & Analysis API** | [traffic-analyzer-api.onrender.com](https://traffic-analyzer-api.onrender.com) | FastAPI backend ([/health](https://traffic-analyzer-api.onrender.com/health) · [/docs](https://traffic-analyzer-api.onrender.com/docs)) |
+| **📡 Telemetry Ingestion Endpoint** | `https://traffic-analyzer-api.onrender.com/api/collect` | High-throughput telemetry collector endpoint |
+
+### Production Highlights
+- **Automated Telemetry Dispatch**: Every page on the deployed demo site embeds `tracker.js` configured with `data-api-url="https://traffic-analyzer-api.onrender.com/api/collect"`, safely dispatching page views, link clicks, form submissions, and unloads via `fetch()` and `navigator.sendBeacon()`.
+- **Dynamic CORS Integration**: The FastAPI collector supports cross-origin telemetry from all `*.onrender.com` subdomains and localhost environments.
+- **Configurable Dashboard Routing**: The React frontend dashboard integrates dynamically via `VITE_API_URL` and `VITE_DEMO_URL` environment variables.
+
+### Generating Live Traffic Against Render
+You can stream simulated visitors, traffic spikes, and security anomalies directly to the cloud deployment:
+```bash
+# Continuous realistic visitor traffic (2 visits/sec)
+python simulator/simulator.py --collector-url https://traffic-analyzer-api.onrender.com/api/collect --demo-url https://demo-site-6524.onrender.com --mode continuous --rate 2.0
+
+# Run complete demonstration sequence (baseline -> spike -> error surge -> suspicious IP)
+python simulator/simulator.py --collector-url https://traffic-analyzer-api.onrender.com/api/collect --demo-url https://demo-site-6524.onrender.com --mode demo
+```
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid
