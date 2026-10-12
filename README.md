@@ -6,7 +6,7 @@
 
 ## 🌐 Live Cloud Deployment (Render)
 
-The application stack is fully deployed and operational in production on! [Render](https://render.com):
+The application stack is fully deployed and operational in production on [Render](https://render.com):
 
 | Component | URL | Description |
 |---|---|---|
